@@ -33,6 +33,7 @@ int main(int c, char * argv []) {
     uint32_t * patch[10000];
     uint32_t patchcount = 0;
     
+    /* move arg1 into rax register - rax will act as our tape pointer */
     *(char*)oaddr++ = 0x48;
     *(char*)oaddr++ = 0x89;
     *(char*)oaddr++ = 0xf8;
@@ -59,6 +60,7 @@ int main(int c, char * argv []) {
                     if(c == EOF || c == '>' || c == '<' ||
                                  c == '.' || c == ',' || c == '[' || c == ']'){
                         if(c != ','){ //if we are reading input, we can disregard sums
+                            /* add opcount bytes to *rax, negative works fine too */
                             *(char*)oaddr++ = 0x80;
                             *(char*)oaddr++ = 0x00;
                             *(char*)oaddr++ = opcount & 0xff;
@@ -81,6 +83,8 @@ int main(int c, char * argv []) {
                     if(c == EOF || c == '+' || c == '-' ||
                                  c == '.' || c == ',' || c == '[' || c == ']'){
                         if(opcount >= 0){
+                            /* add opcount to rax, since its 64 bit, neg is 
+                                handled seperately fine too */
                             *(char*)oaddr++ = 0x48;
                             *(char*)oaddr++ = 0x05;
                             *(uint32_t*) oaddr = opcount;
@@ -102,6 +106,7 @@ int main(int c, char * argv []) {
                 }
                 break;
             case '[':
+                /* cmp [rax] to 0, jmp forward*/
                 *(char*)oaddr++ = 0x80;
                 *(char*)oaddr++ = 0x38;
                 *(char*)oaddr++ = 0x00;
@@ -112,6 +117,7 @@ int main(int c, char * argv []) {
                 oaddr += 4;
                 break;
             case ']':
+                /* cmp [rax] to 0, jmp backward*/
                 *(char*)oaddr++ = 0x80;
                 *(char*)oaddr++ = 0x38;
                 *(char*)oaddr++ = 0x00;
@@ -124,7 +130,7 @@ int main(int c, char * argv []) {
                     return 1;
                 }
                 patchcount--;
-                
+                /* found a matching brace, back patch both jumps */
                 *patch[patchcount] = (uint32_t)((uint64_t)oaddr - (uint64_t)patch[patchcount]);
                 *(uint32_t *)oaddr = (uint32_t)((uint64_t)patch[patchcount] - (uint64_t)oaddr);
                 
@@ -133,6 +139,8 @@ int main(int c, char * argv []) {
             case ',':
                 break;
             case '.':
+                /* load a byte from [rax], copy to edi which is arg 1 in x86_64 */
+                /* push rax, load address of putchar to rbx, call rbx, pop rax */
                 *(char*)oaddr++ = 0x50;
                 *(char*)oaddr++ = 0x8a;
                 *(char*)oaddr++ = 0x00;
