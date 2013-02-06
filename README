@@ -1,0 +1,5 @@
+A brainfuck interpreter for x86_64
+
+Only works on linux so far, windows with msvc will require some tweaking of the calling conventions.
+
+havent implemented the ',' operator yet
